@@ -1,37 +1,72 @@
 (function () {
-    'use strict';
-    
-   function WeatherInterface() {
-        this.create = function () {
-            var weatherHTML = `
-                <div class="weather-widget">
-                    <div class="weather-temp" id="weather-temp"></div>
-                    <div class="weather-condition" id="weather-condition"></div>
+    const css = `
+    .weather-widget {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        font-size: 14px;
+        color: white;
+        text-shadow: 0 0 2px black;
+    }
+    .weather-temp {
+        font-weight: bold;
+    }
+    .weather-condition {
+        font-size: 14px;
+        opacity: 0.8;
+    }
+    .weather-condition.long-text {
+        font-size: 12px;
+    }
+    .head__split {
+        width: 1px;
+        height: 30px;
+        background: rgba(255, 255, 255, 0.2);
+        margin: 0 10px;
+    }
+    `;
+
+    const style = document.createElement('style');
+    style.textContent = css;
+    document.head.appendChild(style);
+
+    class WeatherInterface {
+        constructor() {
+            this.apiKey = 'e8d6a31f7f3a49d6b25115928240104';
+        }
+
+        create() {
+            const html = `
+                <div id="weather-interface">
+                    <div class="weather-widget">
+                        <div class="weather-temp" id="weather-temp"></div>
+                        <div class="weather-condition" id="weather-condition"></div>
+                    </div>
                 </div>
             `;
-            $('body').append('<div id="weather-interface">' + weatherHTML + '</div>');
-        };
+            document.body.insertAdjacentHTML('beforeend', html);
+        }
 
-        this.render = function () {
-            return $('#weather-interface .weather-widget');
-        };
+        render() {
+            return document.querySelector('#weather-interface .weather-widget');
+        }
 
-        this.getWeather = function () {
-            if (navigator.geolocation) {
+        getWeather() {
+            if ('geolocation' in navigator) {
                 navigator.geolocation.getCurrentPosition(
-                    this.getWeatherData.bind(this),
-                    this.getLocationByIP.bind(this),
-                    { enableHighAccuracy: true }
+                    pos => this.getWeatherData(pos),
+                    () => this.getLocationByIP()
                 );
             } else {
                 this.getLocationByIP();
             }
-        };
+        }
 
-        this.getLocationByIP = function () {
-            fetch('http://ip-api.com/json')
-                .then((response) => response.json())
-                .then((data) => {
+        getLocationByIP() {
+            fetch('https://ip-api.com/json')
+                .then(res => res.json())
+                .then(data => {
                     const position = {
                         coords: {
                             latitude: data.lat,
@@ -40,70 +75,63 @@
                     };
                     this.getWeatherData(position);
                 })
-                .catch(this.processError);
-        };
+                .catch(err => console.error('Ошибка при получении геолокации по IP:', err));
+        }
 
-        this.getWeatherData = function (position) {
+        getWeatherData(position) {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
-            const apiKey = 'e8d6a31f7f3a49d6b25115928240104';
-            const apiUrl = `https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${lat},${lon}&lang=ru`;
+            const url = `https://api.weatherapi.com/v1/current.json?key=${this.apiKey}&q=${lat},${lon}&lang=ru`;
 
-            fetch(apiUrl)
-                .then((response) => response.json())
-                .then((data) => this.processWeatherData(data))
-                .catch(this.processError);
-        };
+            fetch(url)
+                .then(res => res.json())
+                .then(data => this.processWeatherData(data))
+                .catch(err => this.processError(err));
+        }
 
-        this.processWeatherData = function (result) {
-            const temp = result.current.temp_c;
-            const condition = result.current.condition.text;
+        processWeatherData(data) {
+            const temp = data.current.temp_c;
+            const condition = data.current.condition.text;
 
-            $('#weather-temp').text(temp + '°C');
-            $('#weather-condition').text(condition);
+            document.getElementById('weather-temp').textContent = temp + '°C';
+            const cond = document.getElementById('weather-condition');
+            cond.textContent = condition;
+            cond.classList.toggle('long-text', condition.length > 20);
+        }
 
-            // Уменьшим размер текста при длинном описании
-            if (condition.length > 20) {
-                $('#weather-condition').addClass('long-text');
-            } else {
-                $('#weather-condition').removeClass('long-text');
-            }
-        };
+        processError(err) {
+            console.error('Ошибка при получении данных о погоде:', err);
+        }
 
-        this.processError = function (error) {
-            console.error('Ошибка при получении данных о погоде:', error);
-        };
-
-        this.destroy = function () {
-            $('#weather-interface').remove();
-        };
+        destroy() {
+            const el = document.getElementById('weather-interface');
+            if (el) el.remove();
+        }
     }
 
+    const weatherInterface = new WeatherInterface();
 
-
-
-
-    var weatherInterface = new WeatherInterface();
-
-    var weatherInterface = new WeatherInterface();
-
-    $(document).ready(function () {
-        setTimeout(function () {
+    document.addEventListener('DOMContentLoaded', () => {
+        setTimeout(() => {
             weatherInterface.create();
-            var weatherWidget = weatherInterface.render();
+            const weatherWidget = weatherInterface.render();
 
-            // Вставка рядом с head__time
-            $('.head__time').after('<div class="head__split"></div>');
-            $('.head__split').after(weatherWidget);
+            const timeEl = document.querySelector('.head__time');
+            if (timeEl && weatherWidget) {
+                // Создаём и вставляем разделитель
+                const split = document.createElement('div');
+                split.className = 'head__split';
+                timeEl.insertAdjacentElement('afterend', split);
+                split.insertAdjacentElement('afterend', weatherWidget);
 
-            weatherInterface.getWeather();
+                // Подгоняем ширину
+                const w = timeEl.offsetWidth;
+                weatherWidget.style.width = w + 'px';
+                timeEl.style.width = w + 'px';
 
-            // Подгон ширины
-            var width_element = document.querySelector('.head__time');
-            console.log(width_element.offsetWidth);
-            $('.weather-widget').css('width', width_element.offsetWidth + 'px');
-            $('.head__time').css('width', width_element.offsetWidth + 'px');
+                // Загружаем погоду
+                weatherInterface.getWeather();
+            }
         }, 5000);
     });
-	
 })();
