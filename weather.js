@@ -14,6 +14,7 @@
         }
 
         .weather-container {
+             width: auto !important;
             display: inline-flex;
             align-items: center;
             gap: 10px;
