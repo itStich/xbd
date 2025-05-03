@@ -28,6 +28,10 @@
             .weather-condition {
                 font-style: italic;
             }
+
+            .weather-error {
+                color: red;
+            }
         </style>
     `;
 
@@ -40,62 +44,66 @@
     `;
 
     function fetchWeather(lat, lon) {
-        const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${lat},${lon}&lang=ru&aqi=no`;
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                const temp = Math.round(data.current.temp_c) + '°';
+        const url = 'https://api.weatherapi.com/v1/current.json?key=' + API_KEY +
+                    '&q=' + lat + ',' + lon + '&lang=ru&aqi=no';
+
+        $.ajax({
+            url: url,
+            method: 'GET',
+            timeout: 5000,
+            success: function (data) {
+                const temp = Math.floor(data.current.temp_c);
                 const condition = data.current.condition.text;
-                document.getElementById('weather-temp').textContent = temp;
-                document.getElementById('weather-condition').textContent = condition;
-            })
-            .catch(() => {
-                document.getElementById('weather-temp').textContent = '--°';
-                document.getElementById('weather-condition').textContent = 'Ошибка';
-            });
+
+                $('#weather-temp').text(temp + '°');
+                $('#weather-condition')
+                    .text(condition)
+                    .toggleClass('long-text', condition.length > 10);
+            },
+            error: function () {
+                $('#weather-temp').text('--°');
+                $('#weather-condition').text('Ошибка').addClass('weather-error');
+            }
+        });
     }
 
-    function initWeather() {
-        // Добавляем стили
+    function fetchWeatherByIP() {
+        $.get("https://ip-api.com/json", function (locationData) {
+            fetchWeather(locationData.lat, locationData.lon);
+        }).fail(function () {
+            $('#weather-condition').text('Ошибка локации').addClass('weather-error');
+        });
+    }
+
+    function getWeather() {
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    fetchWeather(position.coords.latitude, position.coords.longitude);
+                },
+                fetchWeatherByIP
+            );
+        } else {
+            fetchWeatherByIP();
+        }
+    }
+
+    function init() {
         $('head').append(style);
 
-        // Вставляем блок погоды рядом с .head__time
         const timeBlock = $('.head__time');
         if (timeBlock.length) {
             timeBlock.after(weatherHTML);
         }
 
-        // Получаем геолокацию или fallback
-        if ('geolocation' in navigator) {
-            navigator.geolocation.getCurrentPosition(
-                pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                () => fallbackIP()
-            );
-        } else {
-            fallbackIP();
-        }
+        getWeather();
 
-        // Обновляем погоду каждые 30 минут
-        setInterval(() => {
-            if ('geolocation' in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
-                    () => fallbackIP()
-                );
-            } else {
-                fallbackIP();
-            }
-        }, 30 * 60 * 1000);
-    }
-
-    function fallbackIP() {
-        $.get("https://ip-api.com/json", function (locationData) {
-            fetchWeather(locationData.lat, locationData.lon);
-        });
+        // Обновляем каждые 30 минут
+        setInterval(getWeather, 30 * 60 * 1000);
     }
 
     $(document).ready(function () {
-        setTimeout(initWeather, 3000);
+        setTimeout(init, 3000);
     });
 
 })();
