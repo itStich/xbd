@@ -14,7 +14,7 @@
         }
 
         .weather-container {
-             width: auto !important;
+            width: auto !important;
             display: inline-flex;
             align-items: center;
             gap: 10px;
@@ -133,33 +133,17 @@
     }
 
     var weatherInterface = new WeatherInterface();
-    var isTimeVisible = true;
 
     $(document).ready(function () {
-        setTimeout(function () {
-            weatherInterface.create();
-            var weatherWidget = weatherInterface.render();
-            $('.head__time').after(weatherWidget);
+        weatherInterface.create();
+        var weatherWidget = weatherInterface.render();
+        $('.head__time').after(weatherWidget);
 
-            function toggleDisplay() {
-                if (isTimeVisible) {
-                    $('.head__time').show();
-                    $('.weather-widget').show();
-                } else {
-                    $('.head__time').show();
-                    $('.weather-widget').show();
-                }
-                isTimeVisible = !isTimeVisible;
-            }
+        weatherInterface.getWeather();
 
-            setInterval(toggleDisplay, 10000);
-
-            weatherInterface.getWeather();
-
-            $('.weather-widget').hide();
-            var width_element = document.querySelector('.head__time');
-            $('.head__time').css('width', width_element.offsetWidth + 'px');
-        }, 5000);
+        // Настроим ширину head__time, если нужно визуально подогнать
+        var width_element = document.querySelector('.head__time');
+        $('.head__time').css('width', width_element.offsetWidth + 'px');
     });
 
 })();
