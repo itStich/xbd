@@ -157,7 +157,6 @@
 
             $('.weather-widget').hide();
             var width_element = document.querySelector('.head__time');
-            $('.weather-widget').css('width', width_element.offsetWidth + 'px');
             $('.head__time').css('width', width_element.offsetWidth + 'px');
         }, 5000);
     });
