@@ -1,137 +1,99 @@
 (function () {
-    const css = `
-    .weather-widget {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: flex-start;
-        font-size: 14px;
-        color: white;
-        text-shadow: 0 0 2px black;
-    }
-    .weather-temp {
-        font-weight: bold;
-    }
-    .weather-condition {
-        font-size: 14px;
-        opacity: 0.8;
-    }
-    .weather-condition.long-text {
-        font-size: 12px;
-    }
-    .head__split {
-        width: 1px;
-        height: 30px;
-        background: rgba(255, 255, 255, 0.2);
-        margin: 0 10px;
-    }
+    'use strict';
+
+    const API_KEY = "46a5d8546cc340f69d9123207242801";
+
+    const style = `
+        <style>
+            .weather-container {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                white-space: nowrap;
+                font-size: 1em;
+            }
+            .weather-divider {
+                margin: 0 5px;
+                color: #999;
+            }
+            .weather-temp {
+                font-weight: bold;
+            }
+            .weather-condition {
+                font-style: italic;
+            }
+        </style>
     `;
 
-    const style = document.createElement('style');
-    style.textContent = css;
-    document.head.appendChild(style);
+    const weatherHTML = `
+        <div class="weather-container" id="weather-display">
+            <span class="current-time" id="current-time"></span>
+            <span class="weather-divider">|</span>
+            <span class="weather-temp" id="weather-temp"></span>
+            <span class="weather-condition" id="weather-condition"></span>
+        </div>
+    `;
 
-    class WeatherInterface {
-        constructor() {
-            this.apiKey = 'e8d6a31f7f3a49d6b25115928240104';
-        }
+    function updateTime() {
+        const now = new Date();
+        const options = {
+            hour: '2-digit',
+            minute: '2-digit',
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
+        };
+        const formatted = now.toLocaleString('ru-RU', options).replace(',', '');
+        document.getElementById('current-time').textContent = formatted;
+    }
 
-        create() {
-            const html = `
-                <div id="weather-interface">
-                    <div class="weather-widget">
-                        <div class="weather-temp" id="weather-temp"></div>
-                        <div class="weather-condition" id="weather-condition"></div>
-                    </div>
-                </div>
-            `;
-            document.body.insertAdjacentHTML('beforeend', html);
-        }
+    function fetchWeather(lat, lon) {
+        const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${lat},${lon}&lang=ru&aqi=no`;
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                const temp = Math.round(data.current.temp_c) + '°';
+                const condition = data.current.condition.text;
+                document.getElementById('weather-temp').textContent = temp;
+                document.getElementById('weather-condition').textContent = condition;
+            })
+            .catch(() => {
+                document.getElementById('weather-temp').textContent = '??°';
+                document.getElementById('weather-condition').textContent = 'Ошибка';
+            });
+    }
 
-        render() {
-            return document.querySelector('#weather-interface .weather-widget');
-        }
+    function initWeather() {
+        // Вставляем стили
+        $('head').append(style);
 
-        getWeather() {
-            if ('geolocation' in navigator) {
-                navigator.geolocation.getCurrentPosition(
-                    pos => this.getWeatherData(pos),
-                    () => this.getLocationByIP()
-                );
-            } else {
-                this.getLocationByIP();
-            }
-        }
+        // Вставляем HTML в .head__time, заменяя его содержимое
+        const container = $('.head__time');
+        container.empty().append(weatherHTML);
 
-        getLocationByIP() {
-            fetch('https://ip-api.com/json')
-                .then(res => res.json())
-                .then(data => {
-                    const position = {
-                        coords: {
-                            latitude: data.lat,
-                            longitude: data.lon
-                        }
-                    };
-                    this.getWeatherData(position);
-                })
-                .catch(err => console.error('Ошибка при получении геолокации по IP:', err));
-        }
+        // Обновление времени каждую минуту
+        updateTime();
+        setInterval(updateTime, 60 * 1000);
 
-        getWeatherData(position) {
-            const lat = position.coords.latitude;
-            const lon = position.coords.longitude;
-            const url = `https://api.weatherapi.com/v1/current.json?key=${this.apiKey}&q=${lat},${lon}&lang=ru`;
-
-            fetch(url)
-                .then(res => res.json())
-                .then(data => this.processWeatherData(data))
-                .catch(err => this.processError(err));
-        }
-
-        processWeatherData(data) {
-            const temp = data.current.temp_c;
-            const condition = data.current.condition.text;
-
-            document.getElementById('weather-temp').textContent = temp + '°C';
-            const cond = document.getElementById('weather-condition');
-            cond.textContent = condition;
-            cond.classList.toggle('long-text', condition.length > 20);
-        }
-
-        processError(err) {
-            console.error('Ошибка при получении данных о погоде:', err);
-        }
-
-        destroy() {
-            const el = document.getElementById('weather-interface');
-            if (el) el.remove();
+        // Получаем погоду по геолокации
+        if ('geolocation' in navigator) {
+            navigator.geolocation.getCurrentPosition(
+                pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+                () => fallbackIP()
+            );
+        } else {
+            fallbackIP();
         }
     }
 
-    const weatherInterface = new WeatherInterface();
+    function fallbackIP() {
+        $.get("https://ip-api.com/json", function (locationData) {
+            fetchWeather(locationData.lat, locationData.lon);
+        });
+    }
 
-    document.addEventListener('DOMContentLoaded', () => {
-        setTimeout(() => {
-            weatherInterface.create();
-            const weatherWidget = weatherInterface.render();
-
-            const timeEl = document.querySelector('.head__time');
-            if (timeEl && weatherWidget) {
-                // Создаём и вставляем разделитель
-                const split = document.createElement('div');
-                split.className = 'head__split';
-                timeEl.insertAdjacentElement('afterend', split);
-                split.insertAdjacentElement('afterend', weatherWidget);
-
-                // Подгоняем ширину
-                const w = timeEl.offsetWidth;
-                weatherWidget.style.width = w + 'px';
-                timeEl.style.width = w + 'px';
-
-                // Загружаем погоду
-                weatherInterface.getWeather();
-            }
-        }, 5000);
+    $(document).ready(function () {
+        setTimeout(initWeather, 3000);
     });
+
 })();
