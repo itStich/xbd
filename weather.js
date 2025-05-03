@@ -35,22 +35,16 @@
         </style>
     `;
 
-    const weatherHTML = `
-        <div class="head__split"></div>
-        <div class="weather-container">
-            <span class="weather-temp" id="weather-temp">--°</span>
-            <span class="weather-condition" id="weather-condition">Загрузка...</span>
-        </div>
-    `;
+
 
   function WeatherInterface() {
         var html;
         var network = new Lampa.Reguest();
 
         this.create = function () {
-            html = $('<div class="weather-widget">' +
-                    '<div class="weather-temp" id="weather-temp"> </div>' +
-                    '<div class="weather-condition" id="weather-condition"></div>' +
+            html = $('<div class="head__split"></div><div class="weather-container">' +
+                    '<span class="weather-temp" id="weather-temp">--°</span>' +
+                    '<span class="weather-condition" id="weather-condition">Загрузка...</span>' +
                     '</div>');
         };
 
