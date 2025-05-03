@@ -5,20 +5,26 @@
 
     const style = `
         <style>
-            .weather-container {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                white-space: nowrap;
+            .head__split {
+                display: inline-block;
+                margin: 0 10px;
+                color: #999;
+                font-weight: normal;
                 font-size: 1em;
             }
-            .weather-divider {
-                margin: 0 5px;
-                color: #999;
+
+            .weather-container {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 1em;
+                white-space: nowrap;
             }
+
             .weather-temp {
                 font-weight: bold;
             }
+
             .weather-condition {
                 font-style: italic;
             }
@@ -26,26 +32,12 @@
     `;
 
     const weatherHTML = `
-        <div class="weather-container" id="weather-display">
-            <span class="current-time" id="current-time"></span>
-            <span class="weather-divider">|</span>
-            <span class="weather-temp" id="weather-temp"></span>
-            <span class="weather-condition" id="weather-condition"></span>
+        <div class="head__split">|</div>
+        <div class="weather-container">
+            <span class="weather-temp" id="weather-temp">--°</span>
+            <span class="weather-condition" id="weather-condition">Загрузка...</span>
         </div>
     `;
-
-    function updateTime() {
-        const now = new Date();
-        const options = {
-            hour: '2-digit',
-            minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        };
-        const formatted = now.toLocaleString('ru-RU', options).replace(',', '');
-        document.getElementById('current-time').textContent = formatted;
-    }
 
     function fetchWeather(lat, lon) {
         const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${lat},${lon}&lang=ru&aqi=no`;
@@ -58,24 +50,22 @@
                 document.getElementById('weather-condition').textContent = condition;
             })
             .catch(() => {
-                document.getElementById('weather-temp').textContent = '??°';
+                document.getElementById('weather-temp').textContent = '--°';
                 document.getElementById('weather-condition').textContent = 'Ошибка';
             });
     }
 
     function initWeather() {
-        // Вставляем стили
+        // Добавляем стили
         $('head').append(style);
 
-        // Вставляем HTML в .head__time, заменяя его содержимое
-        const container = $('.head__time');
-        container.empty().append(weatherHTML);
+        // Вставляем блок погоды рядом с .head__time
+        const timeBlock = $('.head__time');
+        if (timeBlock.length) {
+            timeBlock.after(weatherHTML);
+        }
 
-        // Обновление времени каждую минуту
-        updateTime();
-        setInterval(updateTime, 60 * 1000);
-
-        // Получаем погоду по геолокации
+        // Получаем геолокацию или fallback
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
                 pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
@@ -84,6 +74,18 @@
         } else {
             fallbackIP();
         }
+
+        // Обновляем погоду каждые 30 минут
+        setInterval(() => {
+            if ('geolocation' in navigator) {
+                navigator.geolocation.getCurrentPosition(
+                    pos => fetchWeather(pos.coords.latitude, pos.coords.longitude),
+                    () => fallbackIP()
+                );
+            } else {
+                fallbackIP();
+            }
+        }, 30 * 60 * 1000);
     }
 
     function fallbackIP() {
