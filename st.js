@@ -49,7 +49,10 @@
             .settings-input__content,
             .selectbox__content,
             .modal__content {
-                background: linear-gradient(135deg, #2a2f4c 1%, #121530 100%);
+                background: -webkit-linear-gradient(315deg, rgb(48,81,211) 1%,rgb(10,8,6) 100%);
+                background: -moz-linear-gradient(315deg, rgb(48,81,211) 1%,rgb(10,8,6) 100%);
+                background: -o-linear-gradient(315deg, rgb(48,81,211) 1%,rgb(10,8,6) 100%);
+                background: linear-gradient(135deg, rgb(48,81,211) 1%,rgb(10,8,6) 100%);
             }
 
             .settings-input__links {
