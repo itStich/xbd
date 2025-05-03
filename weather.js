@@ -126,11 +126,11 @@
         // Функция для переключения между отображением времени и виджета погоды
         function toggleDisplay() {
             if (isTimeVisible) {
-                $('.head__time').hide();
+		    $('.head__time').show();
                 $('.weather-widget').show();
             } else {
                 $('.head__time').show();
-                $('.weather-widget').hide();
+                $('.weather-widget').show();
             }
             isTimeVisible = !isTimeVisible;
         }
